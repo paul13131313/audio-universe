@@ -1219,10 +1219,9 @@ const BILLBOARD_RENDER_SHADER = /* wgsl */`
 
 struct CameraUniforms {
     viewProjection: mat4x4<f32>,
-    cameraPos: vec3<f32>,
-    screenWidth: f32,
-    screenHeight: f32,
-    _padding: vec3<f32>,
+    cameraPos: vec4<f32>,
+    screenSize: vec2<f32>,
+    _pad: vec2<f32>,
 }
 
 struct VertexOutput {
@@ -1264,7 +1263,7 @@ fn vertexMain(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
         return output;
     }
 
-    let forward = normalize(camera.cameraPos - pos);
+    let forward = normalize(camera.cameraPos.xyz - pos);
     let worldUp = vec3<f32>(0.0, 1.0, 0.0);
     let right = normalize(cross(worldUp, forward));
     let up = cross(forward, right);
@@ -1476,7 +1475,9 @@ function updateParticlesGPU(audioData) {
     const cameraData = new Float32Array(24);
     cameraData.set(viewProj, 0);
     cameraData[16]=camX; cameraData[17]=camY; cameraData[18]=camZ;
-    cameraData[19]=canvas.width; cameraData[20]=canvas.height;
+    cameraData[19]=0; // cameraPos.w padding
+    cameraData[20]=canvas.width; // screenSize.x
+    cameraData[21]=canvas.height; // screenSize.y
     device.queue.writeBuffer(cameraUniformBuffer, 0, cameraData);
 
     const commandEncoder = device.createCommandEncoder();

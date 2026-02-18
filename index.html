@@ -1037,7 +1037,7 @@ struct Particle {
 @group(0) @binding(1) var<storage, read_write> particles: array<f32>;
 
 fn hash(p: f32) -> f32 {
-    var s = fract(p * 0.1031);
+    var s = fract((p + 1.7183) * 0.1031);
     s = s * (s + 33.33);
     s = s * (s + s);
     return fract(s);
@@ -1060,10 +1060,11 @@ fn hash3(p: vec3<f32>) -> vec3<f32> {
 
 fn spawnParticle(idx: u32, seed: f32) {
     let base = idx * 16u;
-    let t = audio.time + seed * 1000.0;
-    let r1 = hash(seed * 13.37 + t * 0.001);
-    let r2 = hash(seed * 7.13 + t * 0.002);
-    let r3 = hash(seed * 3.71 + t * 0.003);
+    let fi = f32(idx);
+    let t = audio.time + seed * 1000.0 + fi;
+    let r1 = hash(fi * 13.37 + t * 0.001 + seed);
+    let r2 = hash(fi * 7.13 + t * 0.002 + seed * 2.1);
+    let r3 = hash(fi * 3.71 + t * 0.003 + seed * 3.7);
     let theta = r1 * 6.283185;
     let phi = acos(2.0 * r2 - 1.0);
     let radius = pow(r3, 0.333) * 2.0;
@@ -1123,7 +1124,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     let phase = particles[base + 13u];
 
     life = life - dt;
-    if (life <= 0.0) { spawnParticle(idx, seed + audio.time * 0.01); return; }
+    if (life <= 0.0) { spawnParticle(idx, f32(idx) * 0.0137 + audio.time * 0.01); return; }
     let lifeRatio = life / maxLife;
 
     let pos = vec3<f32>(px, py, pz);
@@ -1192,10 +1193,10 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     if (lifeRatio > 0.9) { alpha = (1.0 - lifeRatio) * 10.0; }
     else if (lifeRatio < 0.2) { alpha = lifeRatio * 5.0; }
     else { alpha = 1.0; }
-    alpha = alpha * (0.3 + audio.volume * 0.7);
+    alpha = alpha * max(0.3 + audio.volume * 0.7, 0.4);
 
     size = particles[base + 12u];
-    size = size * (0.5 + audio.volume * 1.0);
+    size = size * max(0.5 + audio.volume * 1.0, 0.6);
     if (audio.beat > 0.5) { size = size * (1.0 + audio.beat * 0.5); }
     let sparkle = hash2(vec2<f32>(seed, audio.time * 5.0));
     if (sparkle > (1.0 - audio.treble * 0.3)) {
